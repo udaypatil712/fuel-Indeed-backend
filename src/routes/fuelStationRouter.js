@@ -450,6 +450,8 @@ router.post("/showQRCode", authMiddleware, async (req, res) => {
   });
 });
 
+const crypto = require("crypto");
+
 router.post("/razorpay-webhook", async (req, res) => {
   console.log("🔥 WEBHOOK HIT");
 
@@ -457,15 +459,21 @@ router.post("/razorpay-webhook", async (req, res) => {
     const event = req.body.event;
     console.log("EVENT:", event);
 
-    // ✅ Handle ONLY payment_link.paid
+    // Only handle payment_link.paid
     if (event !== "payment_link.paid") {
       return res.json({ status: "ignored" });
     }
 
-    const paymentLinkId = req.body.payload.payment_link.entity.id;
+    const paymentLinkId = req.body?.payload?.payment_link?.entity?.id;
+
+    if (!paymentLinkId) {
+      console.log("❌ Missing paymentLinkId");
+      return res.status(400).json({ error: "Invalid payload" });
+    }
+
     console.log("PaymentLinkId:", paymentLinkId);
 
-    // 1️⃣ Find booking FIRST
+    // Find booking
     const booking = await speedFuelBookingModel.findOne({
       razorpayPaymentLinkId: paymentLinkId,
     });
@@ -475,15 +483,23 @@ router.post("/razorpay-webhook", async (req, res) => {
       return res.json({ status: "ok" });
     }
 
-    // 2️⃣ IDEMPOTENCY CHECK (VERY IMPORTANT)
+    // Idempotency
     if (booking.paymentStatus === "paid") {
-      console.log("ℹ️ Payment already processed");
+      console.log("ℹ️ Already processed");
       return res.json({ status: "already processed" });
     }
 
-    // 3️⃣ (TEMP) Signature check disabled for testing
+    // ==========================
+    // Signature Verification
+    // ==========================
 
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+
+    if (!secret) {
+      console.error("❌ Missing RAZORPAY_WEBHOOK_SECRET");
+      return res.status(500).send("Server config error");
+    }
+
     const razorpaySignature = req.headers["x-razorpay-signature"];
 
     const generatedSignature = crypto
@@ -496,29 +512,37 @@ router.post("/razorpay-webhook", async (req, res) => {
       return res.status(400).send("Invalid signature");
     }
 
-    console.log("✅ PAYMENT CONFIRMED BY RAZORPAY");
+    console.log("✅ SIGNATURE VERIFIED");
 
-    // 4️⃣ Mark booking as PAID
+    // ==========================
+    // Update Booking
+    // ==========================
+
     booking.paymentStatus = "paid";
     booking.status = "processing";
     await booking.save();
 
-    // 5️⃣ Update fuel station stock
+    // Update fuel stock
     const fuelStation = await fuelStationModel.findById(booking.stationId);
 
-    if (booking.fuelType.toLowerCase() === "petrol") {
-      fuelStation.petrolQty -= booking.fuelQty;
-    } else if (booking.fuelType.toLowerCase() === "diesel") {
-      fuelStation.dieselQty -= booking.fuelQty;
+    if (fuelStation) {
+      if (booking.fuelType.toLowerCase() === "petrol") {
+        fuelStation.petrolQty -= booking.fuelQty;
+      } else if (booking.fuelType.toLowerCase() === "diesel") {
+        fuelStation.dieselQty -= booking.fuelQty;
+      }
+
+      fuelStation.speedDeliveryCount += 1;
+      await fuelStation.save();
     }
 
-    fuelStation.speedDeliveryCount += 1;
-    await fuelStation.save();
-
-    // 6️⃣ Assign delivery person
+    // Assign delivery
     const deliveryPerson = await deliveryModel.findById(booking.deliveryId);
-    deliveryPerson.status = "busy";
-    await deliveryPerson.save();
+
+    if (deliveryPerson) {
+      deliveryPerson.status = "busy";
+      await deliveryPerson.save();
+    }
 
     booking.status = "out_for_delivery";
     await booking.save();
