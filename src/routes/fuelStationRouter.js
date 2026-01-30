@@ -450,8 +450,6 @@ router.post("/showQRCode", authMiddleware, async (req, res) => {
   });
 });
 
-const crypto = require("crypto");
-
 router.post("/razorpay-webhook", async (req, res) => {
   console.log("🔥 WEBHOOK HIT");
 
