@@ -103,8 +103,9 @@ router.post("/login", async (req, res) => {
   const token = generateToken(auth);
   res.cookie("token", token, {
     httpOnly: true,
-    secure: true, // REQUIRED for https (ngrok)
-    sameSite: "none", // REQUIRED for cross-site
+    secure: process.env.NODE_ENV === "production", // 👈 true on live server
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    path: "/",
   });
 
   // let redirectTo = "";

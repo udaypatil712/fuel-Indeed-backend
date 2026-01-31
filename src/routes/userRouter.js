@@ -213,7 +213,14 @@ router.post("/bookingFuel/:id", authMiddleware, async (req, res) => {
 });
 
 router.get("/logout", authMiddleware, async (req, res) => {
-  res.clearCookie("token", { httpOnly: true, sameSite: "lax" });
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    path: "/",
+  });
+
   res.json({ message: `${req.user.role} your successfully logout` });
 });
+
 export default router;
