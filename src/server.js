@@ -1,8 +1,6 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-// Debug (TEMP)
-
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -17,12 +15,41 @@ import deliveryRouter from "./routes/deliveryPersonRouter.js";
 import authRouter from "./routes/authRouter.js";
 import adminRouter from "./routes/adminRouter.js";
 
-// App
 const app = express();
 
-// ======================
-// Middleware
-// ======================
+/* =========================
+   CORS + PREFLIGHT (FIRST)
+========================= */
+
+// Manual CORS headers (fix for Render + Cloudflare)
+app.use((req, res, next) => {
+  const allowedOrigin = "https://fuel-indeed-frontend.vercel.app";
+
+  res.header("Access-Control-Allow-Origin", allowedOrigin);
+  res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.header("Access-Control-Allow-Credentials", "true");
+
+  // Handle preflight
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200); // IMPORTANT
+  }
+
+  next();
+});
+
+// Enable CORS middleware
+app.use(
+  cors({
+    origin: "https://fuel-indeed-frontend.vercel.app",
+    credentials: true,
+  }),
+);
+
+/* =========================
+   BODY + COOKIE PARSER
+========================= */
+
 app.use(
   express.json({
     verify: (req, res, buf) => {
@@ -34,49 +61,26 @@ app.use(
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      const allowedOrigins = [
-        "https://fuel-indeed-frontend.vercel.app",
-        "http://localhost:5175",
-      ];
+/* =========================
+   DATABASE
+========================= */
 
-      // Allow requests with no origin (like Postman)
-      if (!origin) return callback(null, true);
-
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  }),
-);
-
-// Preflight support
-app.options("*", cors());
-
-// ======================
-// Database
-// ======================
 connectDB().catch((err) => console.error("MongoDB init error ❌", err));
 
-// ======================
-// Routes
-// ======================
+/* =========================
+   ROUTES
+========================= */
+
 app.use("/admin", adminRouter);
 app.use("/auth", authRouter);
 app.use("/user", userRouter);
 app.use("/fuelStation", fuelStationRouter);
 app.use("/deliveryPerson", deliveryRouter);
 
-// ======================
-// Test Route
-// ======================
+/* =========================
+   TEST ROUTE
+========================= */
+
 app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
@@ -84,9 +88,10 @@ app.get("/", (req, res) => {
   });
 });
 
-// ======================
-// 404 Handler
-// ======================
+/* =========================
+   404 HANDLER
+========================= */
+
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -94,9 +99,10 @@ app.use((req, res) => {
   });
 });
 
-// ======================
-// Server
-// ======================
+/* =========================
+   SERVER
+========================= */
+
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
