@@ -1,11 +1,13 @@
-const express = require("express");
-// const bcrypt = require("bcrypt");
+import express from "express";
+// import bcrypt from "bcrypt"; // (if needed later)
 
 const router = express.Router();
 
-const authMiddleware = require("../middlewares/authMiddleware");
+// Middleware
+import authMiddleware from "../middlewares/authMiddleware.js";
 
-const {
+// Controllers
+import {
   completeProfile,
   updateStock,
   adminDetails,
@@ -15,10 +17,13 @@ const {
   paymentRequest,
   paymentApproval,
   adminLogout,
-} = require("../controllers/adminController");
-const adminModel = require("../models/adminModel");
-const deliveryModel = require("../models/deliveryModel");
-const { sendSMS } = require("../utils/sendSMS");
+} from "../controllers/adminController.js";
+
+// Models
+import adminModel from "../models/adminModel.js";
+import deliveryModel from "../models/deliveryModel.js";
+
+// Utils
 
 // const { adminToken } = require("../utils/generateToken");
 
@@ -147,4 +152,4 @@ router.post("/reject-delivery/:id", authMiddleware, async (req, res) => {
 
 router.get("/logout", authMiddleware, adminLogout);
 
-module.exports = router;
+export default router;

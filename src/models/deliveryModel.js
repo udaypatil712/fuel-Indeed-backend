@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const deliveryPersonSchema = new mongoose.Schema(
   {
@@ -38,4 +38,4 @@ const deliveryPersonSchema = new mongoose.Schema(
 );
 deliveryPersonSchema.index({ location: "2dsphere" });
 
-module.exports = mongoose.model("DeliveryPerson", deliveryPersonSchema);
+export default mongoose.model("DeliveryPerson", deliveryPersonSchema);

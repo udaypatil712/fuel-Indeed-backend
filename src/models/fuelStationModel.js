@@ -1,4 +1,5 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
+
 
 const fuelStationSchema = new mongoose.Schema(
   {
@@ -63,4 +64,4 @@ const fuelStationSchema = new mongoose.Schema(
 );
 fuelStationSchema.index({ location: "2dsphere" });
 
-module.exports = mongoose.model("FuelStation", fuelStationSchema);
+export default mongoose.model("FuelStation", fuelStationSchema);

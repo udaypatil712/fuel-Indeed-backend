@@ -1,10 +1,13 @@
-const adminModel = require("../models/adminModel");
-const sendEmail = require("../utils/sendEmail");
-const paymentModel = require("../models/paymentModel");
-const authModel = require("../models/authModel");
-const fuelStationModel = require("../models/fuelStationModel");
+// Models
+import adminModel from "../models/adminModel.js";
+import paymentModel from "../models/paymentModel.js";
+import authModel from "../models/authModel.js";
+import fuelStationModel from "../models/fuelStationModel.js";
 
-module.exports.completeProfile = async (req, res) => {
+// Utils
+import sendEmail from "../utils/sendEmail.js";
+
+export const completeProfile = async (req, res) => {
   // console.log("Complete profile hit");
   //   console.log(req.user.name);
   try {
@@ -40,7 +43,7 @@ module.exports.completeProfile = async (req, res) => {
   }
 };
 
-module.exports.updateStock = async (req, res) => {
+export const updateStock = async (req, res) => {
   try {
     const { petrolQty, dieselQty, petrolRate, dieselRate } = req.body;
 
@@ -81,7 +84,7 @@ module.exports.updateStock = async (req, res) => {
   }
 };
 
-module.exports.adminDetails = async (req, res) => {
+export const adminDetails = async (req, res) => {
   try {
     const adminDetails = await adminModel.find();
 
@@ -96,7 +99,7 @@ module.exports.adminDetails = async (req, res) => {
   }
 };
 
-module.exports.requestedStation = async (req, res) => {
+export const requestedStation = async (req, res) => {
   try {
     const stationId = req.params.id;
     // let emailId = req.user.email;
@@ -135,7 +138,7 @@ module.exports.requestedStation = async (req, res) => {
   }
 };
 
-module.exports.requestedStationShow = async (req, res) => {
+export const requestedStationShow = async (req, res) => {
   try {
     const admin = await adminModel
       .findOne({ userId: req.user.id })
@@ -158,7 +161,7 @@ module.exports.requestedStationShow = async (req, res) => {
   }
 };
 
-module.exports.paymentStation = async (req, res) => {
+export const paymentStation = async (req, res) => {
   try {
     const stationId = req.params.id;
 
@@ -184,7 +187,7 @@ module.exports.paymentStation = async (req, res) => {
   }
 };
 
-module.exports.paymentRequest = async (req, res) => {
+export const paymentRequest = async (req, res) => {
   console.log(req.user.email);
   try {
     const adminId = req.params.id;
@@ -288,7 +291,7 @@ module.exports.paymentRequest = async (req, res) => {
   }
 };
 
-module.exports.paymentApproval = async (req, res) => {
+export const paymentApproval = async (req, res) => {
   try {
     const paymentId = req.params.paymentId;
     // console.log(paymentId);
@@ -322,7 +325,7 @@ module.exports.paymentApproval = async (req, res) => {
   }
 };
 
-module.exports.adminLogout = (req, res) => {
+export const adminLogout = (req, res) => {
   res.clearCookie("token", { httpOnly: true, sameSite: "lax" });
   res.json({ message: `${req.user.role} your successfully logout` });
 };

@@ -1,6 +1,7 @@
-const fuelStationModel = require("../models/fuelStationModel");
+// const fuelStationModel = require("../models/fuelStationModel");
+import fuelStationModel from "../models/fuelStationModel.js";
 
-module.exports.allStations = async (req, res) => {
+export const allStations = async (req, res) => {
   //   console.log("🔥 /allStations route hit");
   // console.log("Logged-in user ID:", req.user.id);
   try {
@@ -16,7 +17,7 @@ module.exports.allStations = async (req, res) => {
   }
 };
 
-module.exports.completeProfile = async (req, res) => {
+export const completeProfile = async (req, res) => {
   try {
     if (req.user.role !== "fuelStation") {
       return res.status(403).json({ message: "Access denied" });
@@ -40,7 +41,6 @@ module.exports.completeProfile = async (req, res) => {
         type: "Point",
         coordinates: [parseFloat(lng), parseFloat(lat)], //CORRECT ORDER
       },
-      
     };
 
     if (req.file) {
@@ -62,7 +62,7 @@ module.exports.completeProfile = async (req, res) => {
   }
 };
 
-module.exports.stationImage = async (req, res) => {
+export const stationImage = async (req, res) => {
   try {
     let station = await fuelStationModel.findById(req.params.id);
 
@@ -77,7 +77,7 @@ module.exports.stationImage = async (req, res) => {
   }
 };
 
-module.exports.updateStation = async (req, res) => {
+export const updateStation = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -139,7 +139,7 @@ module.exports.updateStation = async (req, res) => {
     const updatedStation = await fuelStationModel.findByIdAndUpdate(
       id,
       { $set: updateData },
-      { new: true }
+      { new: true },
     );
 
     res.status(200).json({
@@ -152,7 +152,7 @@ module.exports.updateStation = async (req, res) => {
   }
 };
 
-module.exports.deleteStation = async (req, res) => {
+export const deleteStation = async (req, res) => {
   try {
     // console.log("DELETE ROUTE HIT:", req.params.stationId);
     // console.log("USER:", req.user);
@@ -185,7 +185,7 @@ module.exports.deleteStation = async (req, res) => {
   }
 };
 
-module.exports.searchStation = async (req, res) => {
+export const searchStation = async (req, res) => {
   const search = req.query.search || "";
 
   let filterStation = await fuelStationModel
@@ -198,7 +198,7 @@ module.exports.searchStation = async (req, res) => {
   res.json(filterStation);
 };
 
-module.exports.stationLogout = async (req, res) => {
+export const stationLogout = async (req, res) => {
   res.clearCookie("token", { httpOnly: true, sameSite: "lax" });
   res.json({ message: `${req.user.role} your successfully logout` });
-}
+};

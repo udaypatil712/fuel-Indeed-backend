@@ -1,4 +1,5 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
+
 
 const speedBookingSchema = new mongoose.Schema(
   {
@@ -93,4 +94,4 @@ const speedBookingSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-module.exports = mongoose.model("SpeedDelivery", speedBookingSchema);
+export default mongoose.model("SpeedDelivery", speedBookingSchema);

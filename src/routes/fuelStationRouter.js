@@ -1,10 +1,15 @@
-const express = require("express");
+import express from "express";
+import crypto from "crypto";
 const router = express.Router();
-const crypto = require("crypto");
 
-const authMiddleware = require("../middlewares/authMiddleware");
-const upload = require("../../config/multer-config");
-const {
+// Middleware
+import authMiddleware from "../middlewares/authMiddleware.js";
+
+// Config
+import upload from "../../config/multer-config.js";
+
+// Controllers
+import {
   allStations,
   completeProfile,
   stationImage,
@@ -12,18 +17,21 @@ const {
   deleteStation,
   searchStation,
   stationLogout,
-} = require("../controllers/fuelStationController");
-const bookingModel = require("../models/fuelBookingModel");
-const authModel = require("../models/authModel");
-const deliveryModel = require("../models/deliveryModel");
-const userModel = require("../models/userModel");
-const fuelStationModel = require("../models/fuelStationModel");
-const { sendWhatsAppMessage } = require("../utils/sendWhatsApp");
+} from "../controllers/fuelStationController.js";
 
-const { Query } = require("mongoose");
-const speedFuelBookingModel = require("../models/speedFuelBookingModel");
+// Models
+import bookingModel from "../models/fuelBookingModel.js";
+import authModel from "../models/authModel.js";
+import deliveryModel from "../models/deliveryModel.js";
+import userModel from "../models/userModel.js";
+import fuelStationModel from "../models/fuelStationModel.js";
+import speedFuelBookingModel from "../models/speedFuelBookingModel.js";
 
-const razorpay = require("../utils/razorpay");
+// Utils
+import { getRazorpayInstance } from "../utils/razorpay.js";
+
+// (Optional) If you really need mongoose Query
+import { Query } from "mongoose";
 
 router.get("/allStations", authMiddleware, allStations);
 
@@ -422,7 +430,7 @@ router.post("/showQRCode", authMiddleware, async (req, res) => {
     latitude,
     longitude,
   });
-
+  const razorpay = getRazorpayInstance();
   const paymentLink = await razorpay.paymentLink.create({
     amount: totalAmount * 100, // paise
     currency: "INR",
@@ -765,4 +773,4 @@ Name: ${bookingSpeed.userName}
 
 router.get("/logout", authMiddleware, stationLogout);
 
-module.exports = router;
+export default router;

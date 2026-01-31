@@ -1,10 +1,16 @@
-const express = require("express");
-const DeliveryPerson = require("../models/deliveryModel");
-const Auth = require("../models/authModel");
-const authMiddleware = require("../middlewares/authMiddleware");
-const upload = require("../../config/multer-config");
-const fuelStationModel = require("../models/fuelStationModel");
-const adminModel = require("../models/adminModel");
+import express from "express";
+
+// Models
+import DeliveryPerson from "../models/deliveryModel.js";
+import Auth from "../models/authModel.js";
+import fuelStationModel from "../models/fuelStationModel.js";
+import adminModel from "../models/adminModel.js";
+
+// Middleware
+import authMiddleware from "../middlewares/authMiddleware.js";
+
+// Config
+import upload from "../../config/multer-config.js";
 
 const router = express.Router();
 
@@ -152,4 +158,4 @@ router.get("/logout", authMiddleware, async (req, res) => {
   res.json({ message: `${req.user.role} your successfully logout` });
 });
 
-module.exports = router;
+export default router;

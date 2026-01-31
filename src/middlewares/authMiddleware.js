@@ -1,7 +1,7 @@
-const jwt = require("jsonwebtoken");
-const Auth = require("../models/authModel");
+import jwt from "jsonwebtoken";
+import Auth from "../models/authModel.js";
 
-module.exports = async (req, res, next) => {
+export default async (req, res, next) => {
   // console.log("🟡 Auth middleware hit");
 
   // console.log("🟡 req.headers.cookie:", req.headers.cookie);

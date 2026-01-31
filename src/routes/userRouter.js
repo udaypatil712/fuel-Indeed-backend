@@ -1,13 +1,16 @@
-const express = require("express");
-const User = require("../models/userModel");
-const Auth = require("../models/authModel");
-const authMiddleware = require("../middlewares/authMiddleware");
-const authModel = require("../models/authModel");
-const fuelStationModel = require("../models/fuelStationModel");
-const userModel = require("../models/userModel");
-const bookingModel = require("../models/fuelBookingModel");
+import express from "express";
+
+// Import Models
+import User from "../models/userModel.js";
+import Auth from "../models/authModel.js";
+import authModel from "../models/authModel.js";
+import fuelStationModel from "../models/fuelStationModel.js";
+import userModel from "../models/userModel.js";
+import bookingModel from "../models/fuelBookingModel.js";
 
 const router = express.Router();
+// Import Middleware
+import authMiddleware from "../middlewares/authMiddleware.js";
 
 router.get("/profile", authMiddleware, async (req, res) => {
   // console.log(req.user);
@@ -213,5 +216,4 @@ router.get("/logout", authMiddleware, async (req, res) => {
   res.clearCookie("token", { httpOnly: true, sameSite: "lax" });
   res.json({ message: `${req.user.role} your successfully logout` });
 });
-
-module.exports = router;
+export default router;

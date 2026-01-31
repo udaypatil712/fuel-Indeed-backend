@@ -1,8 +1,14 @@
-const express = require("express");
-const bcrypt = require("bcrypt");
-const Auth = require("../models/authModel");
-const { generateToken } = require("../utils/generateToken");
-const authMiddleware = require("../middlewares/authMiddleware");
+import express from "express";
+import bcrypt from "bcrypt";
+
+// Models
+import Auth from "../models/authModel.js";
+
+// Utils
+import { generateToken } from "../utils/generateToken.js";
+
+// Middleware
+import authMiddleware from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
@@ -116,4 +122,4 @@ router.post("/login", async (req, res) => {
   });
 });
 
-module.exports = router;
+export default router;
