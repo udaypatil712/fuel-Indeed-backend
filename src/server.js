@@ -1,9 +1,5 @@
 import dotenv from "dotenv";
-
-// Load env from project root (Backend/.env)
-dotenv.config({
-  path: new URL("../.env", import.meta.url).pathname,
-});
+dotenv.config();
 
 // Debug (TEMP)
 
@@ -40,18 +36,28 @@ app.use(cookieParser());
 
 app.use(
   cors({
-    origin: [
-      "https://fuel-indeed-frontend.vercel.app", // your Vercel frontend
-      "https://fuel-indeed-frontend.vercel.app/", // with slash
-      "http://localhost:5175", // local dev
-    ],
+    origin: (origin, callback) => {
+      const allowedOrigins = [
+        "https://fuel-indeed-frontend.vercel.app",
+        "http://localhost:5175",
+      ];
+
+      // Allow requests with no origin (like Postman)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
 
-// Handle preflight requests
+// Preflight support
 app.options("*", cors());
 
 // ======================
