@@ -15,30 +15,29 @@ import deliveryRouter from "./routes/deliveryPersonRouter.js";
 import authRouter from "./routes/authRouter.js";
 import adminRouter from "./routes/adminRouter.js";
 
+// Create app AFTER imports
 const app = express();
 
 /* =========================
-   CORS + PREFLIGHT (FIRST)
+   GLOBAL OPTIONS (FIRST)
 ========================= */
 
-// Manual CORS headers (fix for Render + Cloudflare)
-app.use((req, res, next) => {
-  const allowedOrigin = "https://fuel-indeed-frontend.vercel.app";
+app.options("/*", (req, res) => {
+  res.setHeader(
+    "Access-Control-Allow-Origin",
+    "https://fuel-indeed-frontend.vercel.app",
+  );
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
 
-  res.header("Access-Control-Allow-Origin", allowedOrigin);
-  res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  res.header("Access-Control-Allow-Credentials", "true");
-
-  // Handle preflight
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200); // IMPORTANT
-  }
-
-  next();
+  return res.sendStatus(200);
 });
 
-// Enable CORS middleware
+/* =========================
+   CORS
+========================= */
+
 app.use(
   cors({
     origin: "https://fuel-indeed-frontend.vercel.app",
@@ -47,7 +46,7 @@ app.use(
 );
 
 /* =========================
-   BODY + COOKIE PARSER
+   BODY + COOKIES
 ========================= */
 
 app.use(
@@ -78,7 +77,7 @@ app.use("/fuelStation", fuelStationRouter);
 app.use("/deliveryPerson", deliveryRouter);
 
 /* =========================
-   TEST ROUTE
+   TEST
 ========================= */
 
 app.get("/", (req, res) => {
@@ -89,7 +88,7 @@ app.get("/", (req, res) => {
 });
 
 /* =========================
-   404 HANDLER
+   404
 ========================= */
 
 app.use((req, res) => {
