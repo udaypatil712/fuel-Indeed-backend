@@ -8,20 +8,19 @@ import fuelStationModel from "../models/fuelStationModel.js";
 import sendEmail from "../utils/sendEmail.js";
 
 export const completeProfile = async (req, res) => {
-  // console.log("Complete profile hit");
-  //   console.log(req.user.name);
   try {
     const { petrolQuantity, diselQuantity, petrolRate, dieselRate } = req.body;
 
     if (
-      petrolQuantity === undefined ||
-      diselQuantity === undefined ||
-      petrolRate === undefined ||
-      dieselRate === undefined
+      petrolQuantity == null ||
+      diselQuantity == null ||
+      petrolRate == null ||
+      dieselRate == null
     ) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
+    // 1️⃣ Save admin fuel data
     await adminModel.create({
       userId: req.user.id,
       petrolRate,
@@ -32,14 +31,23 @@ export const completeProfile = async (req, res) => {
       },
     });
 
-    req.user.isProfileCompleted = true;
-    // console.log(req.user);
+    // 2️⃣ Update user profile in DB ✅
+    await authModel.findByIdAndUpdate(
+      req.user.id,
+      { isProfileCompleted: true },
+      { new: true },
+    );
 
     res.status(201).json({
-      message: "Profile completed",
+      success: true,
+      message: "Profile completed successfully",
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Complete profile error:", error);
+
+    res.status(500).json({
+      message: "Server error",
+    });
   }
 };
 
@@ -246,7 +254,7 @@ export const paymentRequest = async (req, res) => {
       amount: totalAmount,
       status: "pending",
     });
-
+    //https://fuel-indeed-backend.onrender.com
     const approveLink = `http://localhost:3002/admin/approve-payment/${payment._id}`;
     console.log("hiiii");
     await sendEmail(
