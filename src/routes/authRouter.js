@@ -122,5 +122,8 @@ router.post("/login", async (req, res) => {
     role: auth.role,
   });
 });
+router.get("/me", authMiddleware, (req, res) => {
+  res.json({ user: req.user });
+});
 
 export default router;

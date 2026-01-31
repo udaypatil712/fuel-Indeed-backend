@@ -15,33 +15,32 @@ import deliveryRouter from "./routes/deliveryPersonRouter.js";
 import authRouter from "./routes/authRouter.js";
 import adminRouter from "./routes/adminRouter.js";
 
-// Create app AFTER imports
 const app = express();
 
 /* =========================
-   GLOBAL OPTIONS (FIRST)
+   CORS CONFIG
 ========================= */
 
-app.options("/*", (req, res) => {
-  res.setHeader(
-    "Access-Control-Allow-Origin",
-    "https://fuel-indeed-frontend.vercel.app",
-  );
-  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  res.setHeader("Access-Control-Allow-Credentials", "true");
-
-  return res.sendStatus(200);
-});
-
-/* =========================
-   CORS
-========================= */
+// Allowed frontend URLs
+const allowedOrigins = [
+  "http://localhost:5175", // Local Vite
+  "http://localhost:3000", // Local React (if used)
+  "https://fuel-indeed-frontend.vercel.app", // Production
+];
 
 app.use(
   cors({
-    origin: "https://fuel-indeed-frontend.vercel.app",
-    credentials: true,
+    origin: function (origin, callback) {
+      // Allow Postman / server-to-server
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS: " + origin));
+      }
+    },
+    credentials: true, // 👈 REQUIRED for cookies
   }),
 );
 
@@ -49,14 +48,7 @@ app.use(
    BODY + COOKIES
 ========================= */
 
-app.use(
-  express.json({
-    verify: (req, res, buf) => {
-      req.rawBody = buf;
-    },
-  }),
-);
-
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
@@ -64,7 +56,9 @@ app.use(cookieParser());
    DATABASE
 ========================= */
 
-connectDB().catch((err) => console.error("MongoDB init error ❌", err));
+connectDB()
+  .then(() => console.log("MongoDB Connected ✅"))
+  .catch((err) => console.error("MongoDB Error ❌", err));
 
 /* =========================
    ROUTES
@@ -77,7 +71,7 @@ app.use("/fuelStation", fuelStationRouter);
 app.use("/deliveryPerson", deliveryRouter);
 
 /* =========================
-   TEST
+   TEST ROUTE
 ========================= */
 
 app.get("/", (req, res) => {
@@ -88,7 +82,7 @@ app.get("/", (req, res) => {
 });
 
 /* =========================
-   404
+   404 HANDLER
 ========================= */
 
 app.use((req, res) => {
@@ -105,5 +99,5 @@ app.use((req, res) => {
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT} 🚀`);
 });

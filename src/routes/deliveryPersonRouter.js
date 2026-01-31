@@ -164,4 +164,5 @@ router.get("/logout", authMiddleware, async (req, res) => {
   res.json({ message: `${req.user.role} your successfully logout` });
 });
 
+
 export default router;

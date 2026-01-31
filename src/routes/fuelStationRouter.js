@@ -773,4 +773,5 @@ Name: ${bookingSpeed.userName}
 
 router.get("/logout", authMiddleware, stationLogout);
 
+
 export default router;
