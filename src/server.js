@@ -23,7 +23,7 @@ const app = express();
 
 // Allowed frontend URLs
 const allowedOrigins = [
-  "http://localhost:5175", // Local Vite  
+  "http://localhost:5175", // Local Vite
   "http://localhost:3000", // Local React (if used)
   "https://fuel-indeed-frontend.vercel.app", // Production
 ];
@@ -48,8 +48,16 @@ app.use(
    BODY + COOKIES
 ========================= */
 
-app.use(express.json());
+app.use(
+  express.json({
+    verify: (req, res, buf) => {
+      req.rawBody = buf; // 👈 REQUIRED for Razorpay
+    },
+  }),
+);
+
 app.use(express.urlencoded({ extended: true }));
+
 app.use(cookieParser());
 
 /* =========================

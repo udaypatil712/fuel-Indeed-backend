@@ -388,124 +388,84 @@ router.get("/showPayment", authMiddleware, async (req, res) => {
 });
 
 router.post("/showQRCode", authMiddleware, async (req, res) => {
-  const {
-    userId,
-    userName,
-    fuelQty,
-    stationId,
-    deliveryId,
-    fuelRate,
-    fuelType,
-    totalAmount,
-    // paymentMethod,
-    latitude,
-    longitude,
-  } = req.body; // user location
+  try {
+    const {
+      userId,
+      userName,
+      fuelQty,
+      stationId,
+      deliveryId,
+      fuelRate,
+      fuelType,
+      totalAmount,
+      latitude,
+      longitude,
+    } = req.body;
 
-  // console.log(
-  //   userId,
-  //   userName,
-  //   fuelQty,
-  //   stationId,
-  //   deliveryId,
-  //   fuelRate,
-  //   fuelType,
-  //   totalAmount,
-  //   paymentMethod,
-  //   latitude,
-  //   longitude,
-  // );
+    // Save booking
+    const speedDeliveryBooking = await speedFuelBookingModel.create({
+      userId,
+      userName,
+      fuelQty,
+      stationId,
+      deliveryId,
+      fuelRate,
+      fuelType,
+      totalAmount,
+      paymentStatus: "pending",
+      payment: "online",
+      latitude,
+      longitude,
+    });
 
-  const speedDeliveryBooking = await speedFuelBookingModel.create({
-    userId,
-    userName,
-    fuelQty,
-    stationId,
-    deliveryId,
-    fuelRate,
-    fuelType,
-    totalAmount,
-    paymentStatus: "pending",
-    payment: "online",
-    latitude,
-    longitude,
-  });
-  const razorpay = getRazorpayInstance();
-  const paymentLink = await razorpay.paymentLink.create({
-    amount: totalAmount * 100, // paise
-    currency: "INR",
-    description: "Fuel Indeed Speed Delivery",
-    customer: {
-      name: userName,
-      contact: "9552515170",
-    },
-    notify: {
-      sms: false,
-      email: false,
-    },
-    callback_url:
-      "https://fuel-indeed-backend.onrender.com/fuelStation/razorpay-webhook",
-    callback_method: "get",
-  });
+    const razorpay = getRazorpayInstance();
 
-  speedDeliveryBooking.razorpayPaymentLinkId = paymentLink.id;
-  await speedDeliveryBooking.save();
+    const paymentLink = await razorpay.paymentLink.create({
+      amount: totalAmount * 100,
+      currency: "INR",
+      description: "Fuel Indeed Speed Delivery",
 
-  res.json({
-    success: true,
-    paymentUrl: paymentLink.short_url, // 👈 FOR QR
-    bookingId: speedDeliveryBooking._id,
-  });
+      customer: {
+        name: userName,
+        contact: "9552515170",
+      },
+
+      notify: {
+        sms: false,
+        email: false,
+      },
+
+      callback_url: "https://fuel-indeed-frontend.vercel.app/payment-success",
+
+      callback_method: "get",
+    });
+
+    speedDeliveryBooking.razorpayPaymentLinkId = paymentLink.id;
+    await speedDeliveryBooking.save();
+
+    res.json({
+      success: true,
+      paymentUrl: paymentLink.short_url,
+      bookingId: speedDeliveryBooking._id,
+    });
+  } catch (err) {
+    console.error("QR ERROR:", err);
+    res.status(500).json({ error: "Payment link failed" });
+  }
 });
 
 router.post("/razorpay-webhook", async (req, res) => {
-  console.log("🔥 WEBHOOK HIT");
+  console.log("🔥 WEBHOOK RECEIVED");
 
   try {
-    const event = req.body.event;
-    console.log("EVENT:", event);
-
-    // Only handle payment_link.paid
-    if (event !== "payment_link.paid") {
-      return res.json({ status: "ignored" });
-    }
-
-    const paymentLinkId = req.body?.payload?.payment_link?.entity?.id;
-
-    if (!paymentLinkId) {
-      console.log("❌ Missing paymentLinkId");
-      return res.status(400).json({ error: "Invalid payload" });
-    }
-
-    console.log("PaymentLinkId:", paymentLinkId);
-
-    // Find booking
-    const booking = await speedFuelBookingModel.findOne({
-      razorpayPaymentLinkId: paymentLinkId,
-    });
-
-    if (!booking) {
-      console.log("⚠️ BOOKING NOT FOUND");
-      return res.json({ status: "ok" });
-    }
-
-    // Idempotency
-    if (booking.paymentStatus === "paid") {
-      console.log("ℹ️ Already processed");
-      return res.json({ status: "already processed" });
-    }
-
-    // ==========================
-    // Signature Verification
-    // ==========================
-
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
 
     if (!secret) {
-      console.error("❌ Missing RAZORPAY_WEBHOOK_SECRET");
-      return res.status(500).send("Server config error");
+      console.error("Missing webhook secret");
+      return res.status(500).send("Server error");
     }
 
+    // Verify Signature
     const razorpaySignature = req.headers["x-razorpay-signature"];
 
     const generatedSignature = crypto
@@ -514,27 +474,54 @@ router.post("/razorpay-webhook", async (req, res) => {
       .digest("hex");
 
     if (generatedSignature !== razorpaySignature) {
-      console.log("❌ SIGNATURE MISMATCH");
+      console.log("❌ Invalid Signature");
       return res.status(400).send("Invalid signature");
     }
 
-    console.log("✅ SIGNATURE VERIFIED");
+    console.log("✅ Signature Verified");
 
-    // ==========================
+    const event = req.body.event;
+
+    if (event !== "payment_link.paid") {
+      return res.json({ status: "ignored" });
+    }
+
+    const paymentLinkId = req.body.payload.payment_link.entity.id;
+
+    console.log("PaymentLink:", paymentLinkId);
+
+    // Find booking
+    const booking = await speedFuelBookingModel.findOne({
+      razorpayPaymentLinkId: paymentLinkId,
+    });
+
+    if (!booking) {
+      console.log("Booking not found");
+      return res.json({ status: "ok" });
+    }
+
+    if (booking.paymentStatus === "paid") {
+      return res.json({ status: "already_done" });
+    }
+
+    // ======================
     // Update Booking
-    // ==========================
+    // ======================
 
     booking.paymentStatus = "paid";
     booking.status = "processing";
     await booking.save();
 
-    // Update fuel stock
+    // ======================
+    // Update Fuel Stock
+    // ======================
+
     const fuelStation = await fuelStationModel.findById(booking.stationId);
 
     if (fuelStation) {
       if (booking.fuelType.toLowerCase() === "petrol") {
         fuelStation.petrolQty -= booking.fuelQty;
-      } else if (booking.fuelType.toLowerCase() === "diesel") {
+      } else {
         fuelStation.dieselQty -= booking.fuelQty;
       }
 
@@ -542,7 +529,10 @@ router.post("/razorpay-webhook", async (req, res) => {
       await fuelStation.save();
     }
 
-    // Assign delivery
+    // ======================
+    // Assign Delivery
+    // ======================
+
     const deliveryPerson = await deliveryModel.findById(booking.deliveryId);
 
     if (deliveryPerson) {
@@ -553,12 +543,12 @@ router.post("/razorpay-webhook", async (req, res) => {
     booking.status = "out_for_delivery";
     await booking.save();
 
-    console.log("✅ PAYMENT VERIFIED & DELIVERY ASSIGNED");
+    console.log("✅ PAYMENT SUCCESS + DELIVERY ASSIGNED");
 
     res.json({ status: "success" });
   } catch (err) {
-    console.error("❌ WEBHOOK ERROR:", err);
-    res.status(500).json({ error: "Webhook processing failed" });
+    console.error("WEBHOOK ERROR:", err);
+    res.status(500).json({ error: "Webhook failed" });
   }
 });
 
