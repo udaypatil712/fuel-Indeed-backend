@@ -444,7 +444,7 @@ router.post("/showQRCode", authMiddleware, async (req, res) => {
       email: false,
     },
     callback_url:
-      "https://falser-edra-reverberantly.ngrok-free.dev/fuelStation/razorpay-success",
+      "https://fuel-indeed-backend.onrender.com/fuelStation/razorpay-webhook",
     callback_method: "get",
   });
 
@@ -772,6 +772,5 @@ Name: ${bookingSpeed.userName}
 );
 
 router.get("/logout", authMiddleware, stationLogout);
-
 
 export default router;
