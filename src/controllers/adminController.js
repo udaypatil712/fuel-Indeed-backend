@@ -196,7 +196,7 @@ export const paymentStation = async (req, res) => {
 };
 
 export const paymentRequest = async (req, res) => {
-  console.log(req.user.email);
+  // console.log(req.user.email);
   try {
     const adminId = req.params.id;
     const {
@@ -256,7 +256,7 @@ export const paymentRequest = async (req, res) => {
     });
     //https://fuel-indeed-backend.onrender.com
     const approveLink = `http://localhost:3002/admin/approve-payment/${payment._id}`;
-    console.log("hiiii");
+    // console.log("hiiii");
     await sendEmail(
       stationOwnerEmail,
       "Fuel Purchase Approval - Fuel Indeed",

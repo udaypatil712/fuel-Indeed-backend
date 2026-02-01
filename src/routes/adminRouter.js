@@ -85,7 +85,7 @@ router.get("/showRequestedDelivery", authMiddleware, async (req, res) => {
       return res.status(404).json({ message: "Admin not found" });
     }
 
-    console.log(admin);
+    // console.log(admin);
     // console.log(admin.deliveryPersons.)
     const filterDeliveryPersons = admin.deliveryPersons.filter((person) => {
       return (

@@ -3,6 +3,8 @@ import express from "express";
 // Models
 import DeliveryPerson from "../models/deliveryModel.js";
 import Auth from "../models/authModel.js";
+import sharp from "sharp";
+import fs from "fs";
 import fuelStationModel from "../models/fuelStationModel.js";
 import adminModel from "../models/adminModel.js";
 
@@ -22,23 +24,37 @@ router.post(
     try {
       const { city, contact, address, pincode, lat, lng } = req.body;
 
-      console.log(city, contact, address, pincode, lat, lng);
-      const delivery = await DeliveryPerson.create({
+      const deliveryPersonData = {
         deliveryPersonId: req.user.id,
         deliveryPersonName: req.user.name,
         city,
         contact,
         address,
         pincode,
-        image: {
-          data: req.file.buffer,
-          contentType: req.file.mimetype,
-        },
         location: {
           type: "Point",
           coordinates: [parseFloat(lng), parseFloat(lat)],
         },
-      });
+      };
+
+      if (req.file) {
+        const outputPath = `uploads/${Date.now()}.webp`;
+
+        // Compress image
+        await sharp(req.file.path)
+          .resize(900, 900, { fit: "inside" })
+          .webp({ quality: 70 })
+          .toFile(outputPath);
+
+        // Delete original
+        fs.unlinkSync(req.file.path);
+
+        // Save path in DB
+        deliveryPersonData.image = outputPath;
+      }
+
+      // console.log(city, contact, address, pincode, lat, lng);
+      const delivery = await DeliveryPerson.create(deliveryPersonData);
 
       await Auth.findByIdAndUpdate(req.user.id, {
         isProfileCompleted: true,
@@ -70,10 +86,19 @@ router.patch(
 
       // ✅ Only update image if new image uploaded
       if (req.file) {
-        updateData.image = {
-          data: req.file.buffer,
-          contentType: req.file.mimetype,
-        };
+        const outputPath = `uploads/${Date.now()}.webp`;
+
+        // Compress image
+        await sharp(req.file.path)
+          .resize(900, 900, { fit: "inside" })
+          .webp({ quality: 70 })
+          .toFile(outputPath);
+
+        // Delete original
+        fs.unlinkSync(req.file.path);
+
+        // Save path in DB
+        updateData  .image = outputPath;
       }
 
       const delivery = await DeliveryPerson.findOneAndUpdate(
@@ -163,6 +188,5 @@ router.get("/logout", authMiddleware, async (req, res) => {
 
   res.json({ message: `${req.user.role} your successfully logout` });
 });
-
 
 export default router;

@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { type } from "os";
 
 const deliveryPersonSchema = new mongoose.Schema(
   {
@@ -8,7 +9,9 @@ const deliveryPersonSchema = new mongoose.Schema(
       required: true,
     },
     deliveryPersonName: String,
-    image: { data: Buffer, contentType: String },
+    image: {
+      type: String,
+    },
     city: String,
     contact: String,
     address: String,

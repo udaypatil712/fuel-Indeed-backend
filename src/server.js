@@ -56,6 +56,13 @@ app.use(
   }),
 );
 
+app.use(
+  "/uploads",
+  express.static("uploads", {
+    maxAge: "7d",
+  }),
+);
+
 app.use(express.urlencoded({ extended: true }));
 
 app.use(cookieParser());

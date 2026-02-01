@@ -1,5 +1,7 @@
 // const fuelStationModel = require("../models/fuelStationModel");
 import fuelStationModel from "../models/fuelStationModel.js";
+import sharp from "sharp";
+import fs from "fs";
 
 export const allStations = async (req, res) => {
   //   console.log("🔥 /allStations route hit");
@@ -24,14 +26,11 @@ export const completeProfile = async (req, res) => {
     }
 
     const ownerId = req.user.id;
-
     const { lat, lng } = req.body;
 
     if (!lat || !lng) {
       return res.status(400).json({ message: "Station location is required" });
     }
-
-    // console.log("LAT:", lat, "LNG:", lng);
 
     const stationData = {
       ownerId,
@@ -39,41 +38,41 @@ export const completeProfile = async (req, res) => {
       status: "pending",
       location: {
         type: "Point",
-        coordinates: [parseFloat(lng), parseFloat(lat)], //CORRECT ORDER
+        coordinates: [parseFloat(lng), parseFloat(lat)],
       },
     };
 
+    // If image uploaded
     if (req.file) {
-      stationData.image = {
-        data: req.file.buffer,
-        contentType: req.file.mimetype,
-      };
+      const outputPath = `uploads/${Date.now()}.webp`;
+
+      // Compress image
+      await sharp(req.file.path)
+        .resize(900, 900, { fit: "inside" })
+        .webp({ quality: 70 })
+        .toFile(outputPath);
+
+      // Delete original
+      fs.unlinkSync(req.file.path);
+
+      // Save path in DB
+      stationData.image = outputPath;
     }
 
     const station = await fuelStationModel.create(stationData);
 
     res.status(201).json({
+      success: true,
       message: "Fuel station submitted for approval",
       station,
     });
   } catch (error) {
     console.error("STATION CREATE ERROR:", error);
-    res.status(500).json({ message: error.message });
-  }
-};
 
-export const stationImage = async (req, res) => {
-  try {
-    let station = await fuelStationModel.findById(req.params.id);
-
-    if (!station || !station.image?.data) {
-      return res.send("Image not Found");
-    }
-
-    res.set("Content-Type", station.image.contentType);
-    res.send(station.image.data);
-  } catch (error) {
-    res.json(error.message);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -127,11 +126,20 @@ export const updateStation = async (req, res) => {
     };
 
     // 🔥 FORCE IMAGE UPDATE
-    if (req.file && req.file.buffer) {
-      updateData.image = {
-        data: Buffer.from(req.file.buffer),
-        contentType: req.file.mimetype,
-      };
+    if (req.file) {
+      const outputPath = `uploads/${Date.now()}.webp`;
+
+      // Compress image
+      await sharp(req.file.path)
+        .resize(900, 900, { fit: "inside" })
+        .webp({ quality: 70 })
+        .toFile(outputPath);
+
+      // Delete original
+      fs.unlinkSync(req.file.path);
+
+      // Save path in DB
+      updateData.image = outputPath;
     }
 
     // console.log("FINAL UPDATE DATA:", updateData);

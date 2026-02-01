@@ -12,7 +12,7 @@ import upload from "../../config/multer-config.js";
 import {
   allStations,
   completeProfile,
-  stationImage,
+  // stationImage,
   updateStation,
   deleteStation,
   searchStation,
@@ -42,7 +42,7 @@ router.post(
   completeProfile,
 );
 
-router.get("/image/:id", authMiddleware, stationImage);
+// router.get("/image/:id", authMiddleware, stationImage)
 
 router.patch(
   "/updateDetails/:id",
@@ -260,7 +260,7 @@ router.get("/showPayment", authMiddleware, async (req, res) => {
     longitude,
   } = req.query;
 
-  console.log(name, phone, address, fuelType, quantity, latitude, longitude);
+  (name, phone, address, fuelType, quantity, latitude, longitude);
 
   //this will give me from that particular customer near by station
   const station = await fuelStationModel.aggregate([
@@ -349,9 +349,9 @@ router.get("/showPayment", authMiddleware, async (req, res) => {
     });
   }
   arr.sort((a, b) => a.sum - b.sum);
-  console.log(arr);
+  // console.log(arr);
   let minDistance = arr[0];
-  console.log(minDistance);
+  // console.log(minDistance);
 
   const nearBystation = await fuelStationModel.findById(minDistance.stationId);
 
@@ -640,7 +640,7 @@ router.get("/assignSpeedOrder/:stationId", authMiddleware, async (req, res) => {
       });
     }
 
-    console.log(speedFuelBookings.length);
+    // console.log(speedFuelBookings.length);
     // console.log(speedFuelBookings);
     res.json({
       success: true,

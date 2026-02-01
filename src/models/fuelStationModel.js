@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
 
-
 const fuelStationSchema = new mongoose.Schema(
   {
     ownerId: {
@@ -16,7 +15,9 @@ const fuelStationSchema = new mongoose.Schema(
       ref: "User",
     },
 
-    image: { data: Buffer, contentType: String },
+    image: {
+      type: String, // file path
+    },
     stationName: String,
     openTime: { type: String, required: true },
     closeTime: { type: String, required: true },
@@ -34,7 +35,6 @@ const fuelStationSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    
 
     speedDeliveryCount: {
       type: Number,
