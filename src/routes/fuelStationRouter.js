@@ -387,7 +387,10 @@ router.get("/showPayment", authMiddleware, async (req, res) => {
   res.json(resultObj);
 });
 
-router.post("/showQRCode", authMiddleware, async (req, res) => {
+/* ===============================
+   CREATE ORDER
+================================*/
+router.post("/create-order", async (req, res) => {
   try {
     const {
       userId,
@@ -402,8 +405,8 @@ router.post("/showQRCode", authMiddleware, async (req, res) => {
       longitude,
     } = req.body;
 
-    // Save booking
-    const speedDeliveryBooking = await speedFuelBookingModel.create({
+    // Create booking (pending)
+    const booking = await speedFuelBookingModel.create({
       userId,
       userName,
       fuelQty,
@@ -412,143 +415,125 @@ router.post("/showQRCode", authMiddleware, async (req, res) => {
       fuelRate,
       fuelType,
       totalAmount,
-      paymentStatus: "pending",
-      payment: "online",
       latitude,
       longitude,
+
+      paymentStatus: "pending",
+      payment: "online",
     });
 
-    const razorpay = getRazorpayInstance();
-
-    const paymentLink = await razorpay.paymentLink.create({
+    // Create Razorpay Order
+    const order = await razorpay.orders.create({
       amount: totalAmount * 100,
       currency: "INR",
-      description: "Fuel Indeed Speed Delivery",
-
-      customer: {
-        name: userName,
-        contact: "9552515170",
-      },
-
-      notify: {
-        sms: false,
-        email: false,
-      },
-
-      callback_url: "https://fuel-indeed-frontend.vercel.app/payment-success",
-
-      callback_method: "get",
+      receipt: booking._id.toString(),
     });
 
-    speedDeliveryBooking.razorpayPaymentLinkId = paymentLink.id;
-    await speedDeliveryBooking.save();
+    // Save order id
+    booking.razorpayOrderId = order.id;
+    await booking.save();
 
     res.json({
       success: true,
-      paymentUrl: paymentLink.short_url,
-      bookingId: speedDeliveryBooking._id,
+
+      order,
+      bookingId: booking._id,
+      key: process.env.RAZORPAY_KEY_ID,
     });
   } catch (err) {
-    console.error("QR ERROR:", err);
-    res.status(500).json({ error: "Payment link failed" });
+    console.log("CREATE ORDER ERROR:", err);
+
+    res.status(500).json({
+      error: "Order creation failed",
+    });
   }
 });
 
-router.post("/razorpay-webhook", async (req, res) => {
-  console.log("🔥 WEBHOOK RECEIVED");
-
+/* ===============================
+   VERIFY PAYMENT
+================================*/
+router.post("/verify-payment", async (req, res) => {
   try {
-    const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+    const {
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+      bookingId,
+    } = req.body;
 
-    if (!secret) {
-      console.error("Missing webhook secret");
-      return res.status(500).send("Server error");
-    }
+    // Verify signature
+    const body = razorpay_order_id + "|" + razorpay_payment_id;
 
-    // Verify Signature
-    const razorpaySignature = req.headers["x-razorpay-signature"];
-
-    const generatedSignature = crypto
-      .createHmac("sha256", secret)
-      .update(req.rawBody)
+    const expected = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .update(body)
       .digest("hex");
 
-    if (generatedSignature !== razorpaySignature) {
-      console.log("❌ Invalid Signature");
-      return res.status(400).send("Invalid signature");
+    if (expected !== razorpay_signature) {
+      return res.status(400).json({
+        error: "Invalid signature",
+      });
     }
-
-    console.log("✅ Signature Verified");
-
-    const event = req.body.event;
-
-    if (event !== "payment_link.paid") {
-      return res.json({ status: "ignored" });
-    }
-
-    const paymentLinkId = req.body.payload.payment_link.entity.id;
-
-    console.log("PaymentLink:", paymentLinkId);
 
     // Find booking
-    const booking = await speedFuelBookingModel.findOne({
-      razorpayPaymentLinkId: paymentLinkId,
-    });
+    const booking = await speedFuelBookingModel.findById(bookingId);
 
     if (!booking) {
-      console.log("Booking not found");
-      return res.json({ status: "ok" });
+      return res.status(404).json({
+        error: "Booking not found",
+      });
     }
 
-    if (booking.paymentStatus === "paid") {
-      return res.json({ status: "already_done" });
-    }
-
-    // ======================
-    // Update Booking
-    // ======================
-
+    // Update booking
     booking.paymentStatus = "paid";
     booking.status = "processing";
+
+    booking.razorpayPaymentId = razorpay_payment_id;
+
     await booking.save();
 
-    // ======================
-    // Update Fuel Stock
-    // ======================
+    /* ===============================
+       UPDATE STOCK
+    ================================*/
 
-    const fuelStation = await fuelStationModel.findById(booking.stationId);
+    const station = await fuelStationModel.findById(booking.stationId);
 
-    if (fuelStation) {
-      if (booking.fuelType.toLowerCase() === "petrol") {
-        fuelStation.petrolQty -= booking.fuelQty;
+    if (station) {
+      if (booking.fuelType === "petrol") {
+        station.petrolQty -= booking.fuelQty;
       } else {
-        fuelStation.dieselQty -= booking.fuelQty;
+        station.dieselQty -= booking.fuelQty;
       }
 
-      fuelStation.speedDeliveryCount += 1;
-      await fuelStation.save();
+      station.speedDeliveryCount += 1;
+
+      await station.save();
     }
 
-    // ======================
-    // Assign Delivery
-    // ======================
+    /* ===============================
+       DELIVERY
+    ================================*/
 
-    const deliveryPerson = await deliveryModel.findById(booking.deliveryId);
+    const delivery = await deliveryModel.findById(booking.deliveryId);
 
-    if (deliveryPerson) {
-      deliveryPerson.status = "busy";
-      await deliveryPerson.save();
+    if (delivery) {
+      delivery.status = "busy";
+      await delivery.save();
     }
 
     booking.status = "out_for_delivery";
     await booking.save();
 
-    console.log("✅ PAYMENT SUCCESS + DELIVERY ASSIGNED");
-
-    res.json({ status: "success" });
+    res.json({
+      success: true,
+      message: "Payment verified",
+    });
   } catch (err) {
-    console.error("WEBHOOK ERROR:", err);
-    res.status(500).json({ error: "Webhook failed" });
+    console.log("VERIFY ERROR:", err);
+
+    res.status(500).json({
+      error: "Verification failed",
+    });
   }
 });
 
