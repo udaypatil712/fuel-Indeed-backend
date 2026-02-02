@@ -391,6 +391,7 @@ router.get("/showPayment", authMiddleware, async (req, res) => {
    CREATE ORDER
 ================================*/
 router.post("/create-order", async (req, res) => {
+  const razorpay = getRazorpayInstance();
   try {
     const {
       userId,
@@ -441,10 +442,10 @@ router.post("/create-order", async (req, res) => {
       key: process.env.RAZORPAY_KEY_ID,
     });
   } catch (err) {
-    console.log("CREATE ORDER ERROR:", err);
+    console.log("FULL ERROR:", err.response?.data || err);
 
     res.status(500).json({
-      error: "Order creation failed",
+      error: err.response?.data,
     });
   }
 });
@@ -488,7 +489,7 @@ router.post("/verify-payment", async (req, res) => {
     booking.paymentStatus = "paid";
     booking.status = "processing";
 
-    booking.razorpayPaymentId = razorpay_payment_id;
+    booking.razorpayPaymentLinkId = razorpay_payment_id;
 
     await booking.save();
 
