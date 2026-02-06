@@ -3,7 +3,7 @@ import adminModel from "../models/adminModel.js";
 import paymentModel from "../models/paymentModel.js";
 import authModel from "../models/authModel.js";
 import fuelStationModel from "../models/fuelStationModel.js";
-
+import mongoose from "mongoose";
 // Utils
 import sendEmail from "../utils/sendEmail.js";
 
@@ -43,7 +43,7 @@ export const completeProfile = async (req, res) => {
       message: "Profile completed successfully",
     });
   } catch (error) {
-    console.error("Complete profile error:", error);
+    // console.error("Complete profile error:", error);
 
     res.status(500).json({
       message: "Server error",
@@ -102,7 +102,7 @@ export const adminDetails = async (req, res) => {
 
     res.status(200).json(adminDetails);
   } catch (error) {
-    console.error("ADMIN DETAILS ERROR:", error);
+    // console.error("ADMIN DETAILS ERROR:", error);
     res.status(500).json({ message: "Something went wrong" });
   }
 };
@@ -159,12 +159,12 @@ export const requestedStationShow = async (req, res) => {
 
     // ❗ Filter ONLY FOR RESPONSE — DO NOT SAVE
     const filteredStations = admin.stationDetails.filter((s) => {
-      return s.fuelStation !== null && s.fuelStation.status === "pending";
+      return s.fuelStation !== null;
     });
-    // console.log(filteredStations);
+    // console.log("line 164", filteredStations);
     res.json(filteredStations);
   } catch (err) {
-    console.error(err);
+    //  console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -185,7 +185,7 @@ export const paymentStation = async (req, res) => {
 
     // console.log(stationOwener.email);
 
-    // console.log(station);
+    //console.log("line 188", station);
     res.json({
       station: station,
       ownerEmail: stationOwener.email,
@@ -196,13 +196,13 @@ export const paymentStation = async (req, res) => {
 };
 
 export const paymentRequest = async (req, res) => {
-  // console.log(req.user.email);
   try {
     const adminId = req.params.id;
+
     const {
       stationId,
-      updatedQuantityOfPetrol,
-      updatedQuantityOfDiesel,
+      // updatedQuantityOfPetrol,
+      // updatedQuantityOfDiesel,
       stationOwnerEmail,
       petrolQty,
       dieselQty,
@@ -212,40 +212,60 @@ export const paymentRequest = async (req, res) => {
     } = req.body;
 
     // console.log(
+    //   "line 214",
     //   stationId,
-    //   updatedQuantityOfPetrol,
-    //   updatedQuantityOfDiesel,
+    //   // updatedQuantityOfPetrol,
+    //   // updatedQuantityOfDiesel,
     //   stationOwnerEmail,
     //   petrolQty,
     //   dieselQty,
     //   petrolRate,
     //   dieselRate,
-    //   totalAmount
+    //   totalAmount,
     // );
 
+    const checkFuelAdmin = await adminModel.findById(adminId);
+
     if (
-      !stationOwnerEmail ||
-      updatedQuantityOfPetrol === undefined ||
-      updatedQuantityOfDiesel === undefined
+      checkFuelAdmin.quantity.petrol < petrolQty ||
+      checkFuelAdmin.quantity.disel < dieselQty
     ) {
-      return res.status(400).json({ message: "Both quantities are required" });
+      return res.status(404).json({ message: "Fuel is not Available" });
     }
 
+    // ================= VALIDATION =================
+    if (!stationId || !stationOwnerEmail || !totalAmount) {
+      return res.status(400).json({
+        message: "Missing required fields",
+      });
+    }
+
+    // ================= UPDATE ADMIN =================
     const admin = await adminModel.findByIdAndUpdate(
       adminId,
       {
-        $set: {
-          "quantity.petrol": updatedQuantityOfPetrol,
-          "quantity.disel": updatedQuantityOfDiesel, // keep spelling as per your schema
+        // $set: {
+        //   "quantity.petrol": updatedQuantityOfPetrol,
+        //   "quantity.disel": updatedQuantityOfDiesel, // keep schema spelling
+        // },
+
+        // Remove station in same query
+        $pull: {
+          stationDetails: {
+            fuelStation: new mongoose.Types.ObjectId(stationId),
+          },
         },
       },
       { new: true },
     );
-    // console.log(admin);
+
     if (!admin) {
-      return res.status(404).json({ message: "Admin not found" });
+      return res.status(404).json({
+        message: "Admin not found",
+      });
     }
 
+    // ================= CREATE PAYMENT =================
     const payment = await paymentModel.create({
       stationId,
       ownerId: adminId,
@@ -254,55 +274,66 @@ export const paymentRequest = async (req, res) => {
       amount: totalAmount,
       status: "pending",
     });
-    //https://fuel-indeed-backend.onrender.com
-    const approveLink = `http://localhost:3002/admin/approve-payment/${payment._id}`;
-    // console.log("hiiii");
+
+    // ================= EMAIL LINK =================
+    const approveLink = `https://fuel-indeed-backend.onrender.com/admin/approve-payment/${payment._id}`;
+
+    // ================= SEND EMAIL =================
     await sendEmail(
       stationOwnerEmail,
       "Fuel Purchase Approval - Fuel Indeed",
       `
-    <h2>⛽ Fuel Purchase Approval Required</h2>
+      <h2>⛽ Fuel Purchase Approval Required</h2>
 
-    <p><b>Petrol:</b> ${petrolQty} L @ ₹${petrolRate}</p>
-    <p><b>Diesel:</b> ${dieselQty} L @ ₹${dieselRate}</p>
+      <p><b>Petrol:</b> ${petrolQty} L @ ₹${petrolRate}</p>
+      <p><b>Diesel:</b> ${dieselQty} L @ ₹${dieselRate}</p>
 
-    <h3>Total Amount: ₹${totalAmount}</h3>
+      <h3>Total Amount: ₹${totalAmount}</h3>
 
-    <br/>
+      <br/>
 
-    <a href="${approveLink}" 
-       style="
-         padding:12px 20px;
-         background:#22c55e;
-         color:white;
-         text-decoration:none;
-         border-radius:6px;
-         font-weight:bold;
-         display:inline-block;
-       ">
-      ✅ Approve Payment
-    </a>
+      <a href="${approveLink}"
+         style="
+           padding:12px 20px;
+           background:#22c55e;
+           color:white;
+           text-decoration:none;
+           border-radius:6px;
+           font-weight:bold;
+           display:inline-block;
+         ">
+        ✅ Approve Payment
+      </a>
 
-    <p>If you did not request this, ignore this email.</p>
-  `,
+      <p>If you did not request this, ignore this email.</p>
+      `,
     );
 
-    // admin.stationDetails = admin.stationDetails.filter(
-    //   (station) => station.fuelStation.toString() !== stationId
-    // );
-
-    // await admin.save();
-    // console.log("byee");
-    res.json(admin.quantity);
+    // ================= RESPONSE =================
+    return res.status(200).json({
+      success: true,
+      quantity: admin.quantity,
+      paymentId: payment._id,
+      message: "Payment request sent successfully",
+    });
   } catch (error) {
-    res.json({ message: error.message });
+    //  console.error("Payment Request Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
   }
 };
 
 export const paymentApproval = async (req, res) => {
   try {
-    const paymentId = req.params.paymentId;
-    // console.log(paymentId);
+    const { paymentId } = req.params;
+
+    //console.log("Payment ID:", paymentId);
+
+    // ================= FIND PAYMENT =================
     const payment = await paymentModel.findById(paymentId);
 
     if (!payment) {
@@ -312,24 +343,44 @@ export const paymentApproval = async (req, res) => {
     if (payment.status === "approved") {
       return res.send("<h1>Payment already approved ✅</h1>");
     }
-    // console.log(payment);
+
+    // ================= UPDATE PAYMENT =================
     payment.status = "approved";
     payment.approvedAt = new Date();
     await payment.save();
 
-    const stationId = payment.stationId.toString();
+    // ================= FIND ADMIN =================
+    const admin = await adminModel.findById(payment.ownerId);
 
-    const station = await fuelStationModel.findById(stationId);
+    if (!admin) {
+      return res.send("<h1>Admin not found ❌</h1>");
+    }
+
+    // ================= UPDATE QUANTITY =================
+    admin.quantity.petrol -= payment.petrolQty;
+    admin.quantity.disel -= payment.dieselQty;
+
+    await admin.save();
+
+    // ================= FIND STATION =================
+    const station = await fuelStationModel.findById(payment.stationId);
+
+    if (!station) {
+      return res.send("<h1>Station not found ❌</h1>");
+    }
 
     station.status = "approved";
     await station.save();
 
-    res.send(`
+    // ================= SUCCESS =================
+    return res.send(`
       <h1>✅ Payment Approved Successfully</h1>
       <p>You can close this window.</p>
     `);
   } catch (err) {
-    res.send("<h1>Something went wrong</h1>");
+    // console.error("Payment Approval Error:", err);
+
+    return res.send("<h1>Something went wrong ❌</h1>");
   }
 };
 

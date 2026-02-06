@@ -63,7 +63,7 @@ router.post(
 
       res.json({ success: true, message: "Profile completed successfully" });
     } catch (err) {
-      console.error(err);
+     // console.error(err);
       res.status(500).json({ success: false, message: "Server error" });
     }
   },
@@ -120,7 +120,7 @@ router.patch(
         delivery,
       });
     } catch (err) {
-      console.error(err);
+      //console.error(err);
       res.status(500).json({ success: false, message: "Server error" });
     }
   },

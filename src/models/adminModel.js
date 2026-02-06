@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
 
-
 const adminSchema = new mongoose.Schema(
   {
     userId: {
@@ -41,4 +40,4 @@ const adminSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-export default  mongoose.model("Admin", adminSchema);
+export default mongoose.model("Admin", adminSchema);

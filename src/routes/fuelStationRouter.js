@@ -83,10 +83,9 @@ router.get("/assignDelivery/:id", authMiddleware, async (req, res) => {
         };
       }),
     );
-
     res.json(result);
   } catch (error) {
-    console.error(error);
+  //  console.error(error);
     res.status(500).json({ message: "Server Error" });
   }
 });
@@ -145,7 +144,7 @@ router.get(
         bookingId: booking._id,
       });
     } catch (error) {
-      console.error(error);
+     // console.error(error);
       res.status(500).json({ message: "Server error" });
     }
   },
@@ -233,7 +232,7 @@ Collect ₹${booking.total} from the customer after delivery.
       deliveryPersonId: deliveryPerson._id,
     });
   } catch (err) {
-    console.error(err);
+  //  console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -442,7 +441,7 @@ router.post("/create-order", async (req, res) => {
       key: process.env.RAZORPAY_KEY_ID,
     });
   } catch (err) {
-    console.log("FULL ERROR:", err.response?.data || err);
+   // console.log("FULL ERROR:", err.response?.data || err);
 
     res.status(500).json({
       error: err.response?.data,
@@ -522,7 +521,7 @@ router.post("/verify-payment", async (req, res) => {
       await delivery.save();
     }
 
-    booking.status = "out_for_delivery";
+    booking.status = "confirmed";
     await booking.save();
 
     res.json({
@@ -530,7 +529,7 @@ router.post("/verify-payment", async (req, res) => {
       message: "Payment verified",
     });
   } catch (err) {
-    console.log("VERIFY ERROR:", err);
+   // console.log("VERIFY ERROR:", err);
 
     res.status(500).json({
       error: "Verification failed",
@@ -552,18 +551,18 @@ router.post("/fastDelivery", authMiddleware, async (req, res) => {
     longitude,
   } = req.body; // user location
 
-  console.log(
-    userId,
-    userName,
-    fuelQty,
-    stationId,
-    deliveryId,
-    fuelRate,
-    fuelType,
-    totalAmount,
-    latitude,
-    longitude,
-  );
+  // console.log(
+  //   userId,
+  //   userName,
+  //   fuelQty,
+  //   stationId,
+  //   deliveryId,
+  //   fuelRate,
+  //   fuelType,
+  //   totalAmount,
+  //   latitude,
+  //   longitude,
+  // );
 
   const deliveryStation = await fuelStationModel.findById(stationId);
 
@@ -572,17 +571,17 @@ router.post("/fastDelivery", authMiddleware, async (req, res) => {
   }
 
   if (fuelType.trim().toLowerCase() === "petrol") {
-    console.log("petrol");
+  //  console.log("petrol");
     deliveryStation.petrolQty -= fuelQty;
   } else if (fuelType.trim().toLowerCase() === "diesel") {
-    console.log("diesel");
+    //console.log("diesel");
     deliveryStation.dieselQty -= fuelQty;
   }
 
   deliveryStation.speedDeliveryCount += 1;
 
   await deliveryStation.save();
-  console.log(deliveryStation.dieselQty);
+  //console.log(deliveryStation.dieselQty);
 
   const deliveryPerson = await deliveryModel.findById(deliveryId);
 
@@ -599,7 +598,7 @@ router.post("/fastDelivery", authMiddleware, async (req, res) => {
     fuelRate,
     fuelType,
     totalAmount,
-    paymentStatus: "paid",
+    paymentStatus: "pending",
     payment: "offline",
     latitude,
     longitude,
@@ -611,31 +610,31 @@ router.get("/assignSpeedOrder/:stationId", authMiddleware, async (req, res) => {
   try {
     const { stationId } = req.params;
 
-    // console.log("Station ID:", stationId);
-
-    // ✅ Get ALL speed bookings of this station
     const speedFuelBookings = await speedFuelBookingModel.find({
-      stationId: stationId,
+      stationId,
       status: "confirmed",
     });
-
-    if (speedFuelBookings.length === 0) {
+   // console.log(speedFuelBookings);
+    if (!speedFuelBookings.length) {
       return res.json({
-        message: "No speed delivery bookings for this station",
+        success: true,
         bookings: [],
+        message: "No valid bookings found",
       });
     }
 
-    // console.log(speedFuelBookings.length);
-    // console.log(speedFuelBookings);
     res.json({
       success: true,
       count: speedFuelBookings.length,
       bookings: speedFuelBookings,
     });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+  } catch (err) {
+    //console.error("Assign Speed Error:", err);
+
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
   }
 });
 
@@ -741,7 +740,7 @@ Name: ${bookingSpeed.userName}
         whatsappLink,
       });
     } catch (error) {
-      console.error(error);
+     // console.error(error);
       res.status(500).json({ message: "Server error" });
     }
   },

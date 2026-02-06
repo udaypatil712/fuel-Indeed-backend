@@ -45,7 +45,7 @@ router.get("/payment/:id", authMiddleware, paymentStation);
 
 router.patch("/updateQuantity/:id", authMiddleware, paymentRequest);
 
-router.get("/approve-payment/:paymentId", authMiddleware, paymentApproval);
+router.get("/approve-payment/:paymentId", paymentApproval);
 
 router.post("/approvalRequest/:id", authMiddleware, async (req, res) => {
   try {
@@ -94,7 +94,7 @@ router.get("/showRequestedDelivery", authMiddleware, async (req, res) => {
       );
     });
 
-    console.log(filterDeliveryPersons);
+   // console.log(filterDeliveryPersons);
     res.json(filterDeliveryPersons); // ✅ SEND RESPONSE
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -125,7 +125,7 @@ router.post("/approve-delivery/:id", authMiddleware, async (req, res) => {
       whatsappLink,
     });
   } catch (err) {
-    console.error(err);
+   // console.error(err);
     res.status(500).json({ message: "Something went wrong" });
   }
 });

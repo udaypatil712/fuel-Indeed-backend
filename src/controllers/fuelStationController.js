@@ -21,43 +21,122 @@ export const allStations = async (req, res) => {
 
 export const completeProfile = async (req, res) => {
   try {
+    /* ================= ROLE CHECK ================= */
     if (req.user.role !== "fuelStation") {
-      return res.status(403).json({ message: "Access denied" });
+      return res.status(403).json({
+        message: "Access denied",
+        step: 1,
+      });
     }
 
     const ownerId = req.user.id;
-    const { lat, lng } = req.body;
 
-    if (!lat || !lng) {
-      return res.status(400).json({ message: "Station location is required" });
+    const {
+      stationName,
+      contact,
+      city,
+      area,
+      pincode,
+      address,
+      openTime,
+      closeTime,
+      petrolQty,
+      petrolRate,
+      dieselQty,
+      dieselRate,
+      lat,
+      lng,
+    } = req.body;
+
+    /* ================= STEP 1 VALIDATION ================= */
+    if (!stationName || !contact || !city || !area || !pincode || !address) {
+      return res.status(400).json({
+        message: "Please fill all basic details",
+        step: 1,
+      });
     }
 
-    const stationData = {
-      ownerId,
-      ...req.body,
-      status: "pending",
-      location: {
-        type: "Point",
-        coordinates: [parseFloat(lng), parseFloat(lat)],
-      },
-    };
+    /* ================= STEP 2 VALIDATION ================= */
+    if (!openTime || !closeTime) {
+      return res.status(400).json({
+        message: "Opening and closing time required",
+        step: 2,
+      });
+    }
 
-    // If image uploaded
+    if (!lat || !lng) {
+      return res.status(400).json({
+        message: "Station location is required",
+        step: 2,
+      });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({
+        message: "Station image is required",
+        step: 2,
+      });
+    }
+
+    /* ================= STEP 3 VALIDATION ================= */
+    if (!petrolQty || !petrolRate || !dieselQty || !dieselRate) {
+      return res.status(400).json({
+        message: "Please fill fuel quantity and rates",
+        step: 3,
+      });
+    }
+
+    /* ================= IMAGE PROCESSING ================= */
+
+    let imagePath = "";
+
     if (req.file) {
       const outputPath = `uploads/${Date.now()}.webp`;
 
-      // Compress image
       await sharp(req.file.path)
         .resize(900, 900, { fit: "inside" })
         .webp({ quality: 70 })
         .toFile(outputPath);
 
       // Delete original
-      fs.unlinkSync(req.file.path);
+      fs.unlink(req.file.path, (err) => {
+        if (err) console.error("File delete error:", err);
+      });
 
-      // Save path in DB
-      stationData.image = outputPath;
+      imagePath = outputPath;
     }
+
+    /* ================= CREATE DATA ================= */
+
+    const stationData = {
+      ownerId,
+
+      stationName,
+      contact,
+      city,
+      area,
+      pincode,
+      address,
+
+      openTime,
+      closeTime,
+
+      petrolQty,
+      petrolRate,
+      dieselQty,
+      dieselRate,
+
+      status: "pending",
+
+      image: imagePath,
+
+      location: {
+        type: "Point",
+        coordinates: [parseFloat(lng), parseFloat(lat)],
+      },
+    };
+
+    /* ================= SAVE ================= */
 
     const station = await fuelStationModel.create(stationData);
 
@@ -67,11 +146,12 @@ export const completeProfile = async (req, res) => {
       station,
     });
   } catch (error) {
-    console.error("STATION CREATE ERROR:", error);
+   // console.error("STATION CREATE ERROR:", error);
 
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Server error. Please try again later.",
+      step: 1,
     });
   }
 };
@@ -155,7 +235,7 @@ export const updateStation = async (req, res) => {
       station: updatedStation,
     });
   } catch (error) {
-    console.error(error);
+   // console.error(error);
     res.status(500).json({ message: error.message });
   }
 };

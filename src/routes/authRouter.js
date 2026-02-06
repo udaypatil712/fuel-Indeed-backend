@@ -115,7 +115,7 @@ router.post("/login", async (req, res) => {
   // } else {
   //   redirectTo = `/${auth.role}/dashboard`;
   // }
-  console.log("Login success");
+ // console.log("Login success");
   res.json({
     // message: "Login success",
     // redirectTo,
