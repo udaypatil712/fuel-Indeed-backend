@@ -31,13 +31,13 @@ const app = express();
 app.use(rateLimiter(200, 900)); // 200 req / 15 min
 
 // Login limiter
-// app.use("/auth/login", rateLimiter(20, 900));
+app.use("/auth/login", rateLimiter(20, 900));
 
 /* =========================
    CORS CONFIG
 ========================= */
 
-const allowedOrigins = ["http://localhost:5175"];
+const allowedOrigins = ["http://localhost:5175","https://fuel-indeed-frontend.vercel.app"];
 
 app.use(
   cors({
