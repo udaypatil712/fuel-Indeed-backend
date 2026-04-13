@@ -6,6 +6,8 @@ import mongoose from "mongoose";
 export const connectDB = async () => {
   try {
     const mongoURI = process.env.MONGO_URI;
+    // console.log("mongoose url ", process.env.MONGO_URI);
+    // console.log("redis url ", process.env.REDIS_URL);
 
     if (!mongoURI) {
       console.error("❌ MONGODB_URI is missing in .env file");

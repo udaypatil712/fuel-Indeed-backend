@@ -19,7 +19,7 @@ export default async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     // console.log("🟢 decoded token:", decoded);
 
-    const user = await Auth.findById(decoded.id);
+    const user = await Auth.findById(decoded.id).select("-password");
     // console.log("🟢 user from DB:", user);
 
     req.user = {

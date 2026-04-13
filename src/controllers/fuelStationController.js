@@ -3,18 +3,42 @@ import fuelStationModel from "../models/fuelStationModel.js";
 import sharp from "sharp";
 import fs from "fs";
 
-export const allStations = async (req, res) => {
-  //   console.log("🔥 /allStations route hit");
-  // console.log("Logged-in user ID:", req.user.id);
-  try {
-    const stations = await fuelStationModel.find({
-      ownerId: req.user.id,
-    });
+import redisClient from "../config/redis.js";
 
-    // console.log(" Stations fetched:", stations);
+export const allStations = async (req, res) => {
+  try {
+    const start = Date.now();
+
+    const cacheKey = `stations:${req.user.id}`;
+
+    // 🔥 1. Check cache
+    const cachedData = await redisClient.get(cacheKey);
+    // var end;
+    if (cachedData) {
+      // console.log("⚡ From Redis Cache");
+      end = Date.now();
+      // console.log("📦 From redis | ⏱ Time:", end - start, "ms");
+      return res.json(JSON.parse(cachedData));
+    }
+
+    // end = Date.now(); // ✅ FIXED POSITION
+
+
+    // 🔥 2. Fetch from DB
+    const stations = await fuelStationModel
+      .find({ ownerId: req.user.id })
+      .lean();
+
+    // end = Date.now(); // ✅ FIXED POSITION
+
+    // console.log("📦 From MongoDB | ⏱ Time:", end - start, "ms");
+
+    // 🔥 3. Store in Redis
+    await redisClient.setex(cacheKey, 60, JSON.stringify(stations));
+
     res.json(stations);
   } catch (err) {
-    // console.error("❌ Route error:", err);
+    console.error("❌ ERROR:", err); // 👈 ADD THIS
     res.status(500).json({ message: err.message });
   }
 };
@@ -146,7 +170,7 @@ export const completeProfile = async (req, res) => {
       station,
     });
   } catch (error) {
-   // console.error("STATION CREATE ERROR:", error);
+    // console.error("STATION CREATE ERROR:", error);
 
     res.status(500).json({
       success: false,
@@ -235,7 +259,7 @@ export const updateStation = async (req, res) => {
       station: updatedStation,
     });
   } catch (error) {
-   // console.error(error);
+    // console.error(error);
     res.status(500).json({ message: error.message });
   }
 };

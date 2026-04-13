@@ -63,5 +63,6 @@ const fuelStationSchema = new mongoose.Schema(
   { timestamps: true },
 );
 fuelStationSchema.index({ location: "2dsphere" });
+fuelStationSchema.index({ ownerId: 1 });
 
 export default mongoose.model("FuelStation", fuelStationSchema);

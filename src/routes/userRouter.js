@@ -8,7 +8,7 @@ import fuelStationModel from "../models/fuelStationModel.js";
 import userModel from "../models/userModel.js";
 import bookingModel from "../models/fuelBookingModel.js";
 
-const router = express.Router();
+const router = express.Router();  
 // Import Middleware
 import authMiddleware from "../middlewares/authMiddleware.js";
 
@@ -55,7 +55,7 @@ router.post("/complete-profile", authMiddleware, async (req, res) => {
 
 router.get("/showNearByStation", authMiddleware, async (req, res) => {
   try {
-    const { lat, lng } = req.query;
+    const { lat, lng } = req.query; // user location
 
     if (!lat || !lng) {
       return res.status(404).json({ message: "Location required" });
@@ -67,11 +67,18 @@ router.get("/showNearByStation", authMiddleware, async (req, res) => {
             type: "Point",
             coordinates: [parseFloat(lng), parseFloat(lat)],
           },
-          distanceField: "distance", //in meters
-          // maxDistance: 5000, // 5km
+          distanceField: "distance",
           spherical: true,
           query: { status: "approved" },
         },
+      },
+      {
+        $addFields: {
+          distanceInKm: { $divide: ["$distance", 1000] },
+        },
+      },
+      {
+        $sort: { distance: 1 },
       },
     ]);
 

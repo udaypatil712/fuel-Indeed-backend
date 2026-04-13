@@ -114,9 +114,9 @@ export const requestedStation = async (req, res) => {
 
     if (req.user.role !== "fuelStation") {
       return res
-        .status(403)
-        .json({ message: "Only fuel station can send request" });
-    }
+        .status(403)          
+        .json({ message: "Only fuel station can send request" });  
+    }                                                                                                                                                                                                                                                                                                                     
 
     //  Find MAIN ADMIN (assuming only one admin exists)
     const admin = await adminModel.findOne();
@@ -283,30 +283,30 @@ export const paymentRequest = async (req, res) => {
       stationOwnerEmail,
       "Fuel Purchase Approval - Fuel Indeed",
       `
-      <h2>⛽ Fuel Purchase Approval Required</h2>
+          <h2>⛽ Fuel Purchase Approval Required</h2>
 
-      <p><b>Petrol:</b> ${petrolQty} L @ ₹${petrolRate}</p>
-      <p><b>Diesel:</b> ${dieselQty} L @ ₹${dieselRate}</p>
+          <p><b>Petrol:</b> ${petrolQty} L @ ₹${petrolRate}</p>
+          <p><b>Diesel:</b> ${dieselQty} L @ ₹${dieselRate}</p>
 
-      <h3>Total Amount: ₹${totalAmount}</h3>
+          <h3>Total Amount: ₹${totalAmount}</h3>
 
-      <br/>
+          <br/>
 
-      <a href="${approveLink}"
-         style="
-           padding:12px 20px;
-           background:#22c55e;
-           color:white;
-           text-decoration:none;
-           border-radius:6px;
-           font-weight:bold;
-           display:inline-block;
-         ">
-        ✅ Approve Payment
-      </a>
+          <a href="${approveLink}"
+            style="
+              padding:12px 20px;
+              background:#22c55e;
+              color:white;
+              text-decoration:none;
+              border-radius:6px;
+              font-weight:bold;
+              display:inline-block;
+            ">
+            ✅ Approve Payment
+          </a>
 
-      <p>If you did not request this, ignore this email.</p>
-      `,
+          <p>If you did not request this, ignore this email.</p>
+          `,
     );
 
     // ================= RESPONSE =================

@@ -1,5 +1,5 @@
-import dotenv from "dotenv";
-dotenv.config();
+// 🔥 MUST BE FIRST
+import "./config/env.js";
 
 import express from "express";
 import cors from "cors";
@@ -8,6 +8,9 @@ import cookieParser from "cookie-parser";
 // Database
 import { connectDB } from "./config/mongoose-connections.js";
 
+// Redis (just import to initialize connection)
+import "./config/redis.js";
+
 // Routes
 import userRouter from "./routes/userRouter.js";
 import fuelStationRouter from "./routes/fuelStationRouter.js";
@@ -15,46 +18,54 @@ import deliveryRouter from "./routes/deliveryPersonRouter.js";
 import authRouter from "./routes/authRouter.js";
 import adminRouter from "./routes/adminRouter.js";
 
+// Middleware
+import { rateLimiter } from "./middlewares/rateLimiter.js";
+
 const app = express();
+
+/* =========================
+   RATE LIMITING
+========================= */
+
+// Global limiter
+app.use(rateLimiter(200, 900)); // 200 req / 15 min
+
+// Login limiter
+// app.use("/auth/login", rateLimiter(20, 900));
 
 /* =========================
    CORS CONFIG
 ========================= */
 
-// Allowed frontend URLs
-const allowedOrigins = [
-  "http://localhost:5175", // Local Vite
-  "http://localhost:3000", // Local React (if used)
-  "https://fuel-indeed-frontend.vercel.app", // Production
-];
+const allowedOrigins = ["http://localhost:5175"];
 
 app.use(
   cors({
-    origin: function (origin, callback) {
-      // Allow Postman / server-to-server
+    origin: (origin, callback) => {
       if (!origin) return callback(null, true);
 
       if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS: " + origin));
+        return callback(null, true);
       }
+
+      return callback(new Error("Not allowed by CORS"));
     },
-    credentials: true, // 👈 REQUIRED for cookies
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
+
+// 🔥 VERY IMPORTANT
+app.options("*", cors());
 
 /* =========================
    BODY + COOKIES
 ========================= */
 
-app.use(
-  express.json({
-    verify: (req, res, buf) => {
-      req.rawBody = buf; // 👈 REQUIRED for Razorpay
-    },
-  }),
-);
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 app.use(
   "/uploads",
@@ -62,10 +73,6 @@ app.use(
     maxAge: "7d",
   }),
 );
-
-app.use(express.urlencoded({ extended: true }));
-
-app.use(cookieParser());
 
 /* =========================
    DATABASE

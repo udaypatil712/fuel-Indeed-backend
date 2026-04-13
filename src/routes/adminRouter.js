@@ -26,7 +26,7 @@ import deliveryModel from "../models/deliveryModel.js";
 // Utils
 
 // const { adminToken } = require("../utils/generateToken");
-
+  
 router.get("/", (req, res) => {
   res.send("hii");
 });
