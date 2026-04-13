@@ -16,7 +16,7 @@ export const allStations = async (req, res) => {
     // var end;
     if (cachedData) {
       // console.log("⚡ From Redis Cache");
-      end = Date.now();
+      // end = Date.now();
       // console.log("📦 From redis | ⏱ Time:", end - start, "ms");
       return res.json(JSON.parse(cachedData));
     }
