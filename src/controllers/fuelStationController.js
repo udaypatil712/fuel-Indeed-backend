@@ -23,7 +23,6 @@ export const allStations = async (req, res) => {
 
     // end = Date.now(); // ✅ FIXED POSITION
 
-
     // 🔥 2. Fetch from DB
     const stations = await fuelStationModel
       .find({ ownerId: req.user.id })
@@ -31,7 +30,7 @@ export const allStations = async (req, res) => {
 
     // end = Date.now(); // ✅ FIXED POSITION
 
-    // console.log("📦 From MongoDB | ⏱ Time:", end - start, "ms");
+    // console.log("📦 From MongoDB | ⏱ Time:");
 
     // 🔥 3. Store in Redis
     await redisClient.setex(cacheKey, 60, JSON.stringify(stations));
